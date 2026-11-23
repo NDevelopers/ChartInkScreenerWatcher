@@ -1,0 +1,14 @@
+{
+  "name": "chartink-watcher",
+  "private": true,
+  "scripts": {
+    "setup": "npm install && cd server && npm install && cd ../client && npm install",
+    "dev": "concurrently -n api,web -c blue,green \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
+    "build": "npm --prefix client run build",
+    "start": "npm --prefix server start",
+    "telegram:chatid": "npm --prefix server run telegram:chatid"
+  },
+  "devDependencies": {
+    "concurrently": "9.1.0"
+  }
+}

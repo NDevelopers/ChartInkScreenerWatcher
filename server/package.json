@@ -1,0 +1,14 @@
+{
+  "name": "chartink-watcher-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch index.js",
+    "start": "node index.js",
+    "telegram:chatid": "node telegram-chatid.js"
+  },
+  "dependencies": {
+    "express": "4.21.2",
+    "web-push": "3.6.7"
+  }
+}
