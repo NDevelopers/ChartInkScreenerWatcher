@@ -46,7 +46,8 @@ async function getResult(scanner, force) {
       // Stocks whose candle closed while matching move to Chartink's recent
       // matches; only alert on the ones that really dropped out.
       const removed = left.filter((d) => !d.movedToHistory);
-      if (!allOff()) {
+      // Paused scanners keep being tracked, they just don't alert.
+      if (!allOff() && !scanner.alertsPaused) {
         alertChanges({ name: scanner.name || data.title, url, added, removed });
         pushChanges({ name: scanner.name || data.title, url, added, removed });
       }
@@ -73,6 +74,7 @@ app.get('/api/scanners', async (req, res) => {
       return {
         url: s.url,
         name: s.name || r.data?.title || s.url,
+        alertsPaused: !!s.alertsPaused,
         updatedAt: r.at,
         error: r.error || null,
         stocks: (r.data?.stocks || []).map((st) => ({
@@ -101,6 +103,20 @@ app.post('/api/scanners', async (req, res) => {
   scanners.push({ url, name: req.body?.name?.trim() || undefined });
   await saveScanners(scanners);
   res.json({ ok: true });
+});
+
+// Pause / resume alerts for one scanner: { url, paused: true | false }
+app.post('/api/scanners/alerts', async (req, res) => {
+  const url = String(req.body?.url || '');
+  if (typeof req.body?.paused !== 'boolean') return res.status(400).json({ error: 'Send { url, paused: true | false }' });
+  const scanners = await loadScanners();
+  const s = scanners.find((x) => x.url === url);
+  if (!s) return res.status(404).json({ error: 'Not watching this scanner' });
+  if (req.body.paused) s.alertsPaused = true;
+  else delete s.alertsPaused;
+  await saveScanners(scanners);
+  console.log(`Alerts ${req.body.paused ? 'paused' : 'resumed'} for ${url}`);
+  res.json({ ok: true, url, alertsPaused: req.body.paused });
 });
 
 app.delete('/api/scanners', async (req, res) => {

@@ -112,7 +112,10 @@ tr.dropped-recent td { background: var(--dropped-bg); }
 .toast strong { display: block; margin-bottom: 3px; }
 @keyframes toast-in { from { transform: translateX(30px); opacity: 0; } }
 
-button.power { font-weight: 700; border-width: 2px; }
+.card-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+.card.alerts-paused { border-style: dashed; }
+.card.alerts-paused h2 a { opacity: 0.75; }
+button.power {font-weight: 700; border-width: 2px; }
 button.power-on { background: #16a34a; border-color: #16a34a; color: #fff; }
 button.power-off { background: #dc2626; border-color: #dc2626; color: #fff; }
 .banner.off { border-color: #dc2626; background: var(--dropped-bg); }

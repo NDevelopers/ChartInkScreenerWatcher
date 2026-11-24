@@ -399,6 +399,22 @@ export default function App() {
       .catch(() => {});
   }, []);
 
+  async function toggleScannerAlerts(sc) {
+    const paused = !sc.alertsPaused;
+    try {
+      const res = await fetch('/api/scanners/alerts', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url: sc.url, paused }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Server returned ${res.status}`);
+      setScanners((list) => list.map((x) => (x.url === sc.url ? { ...x, alertsPaused: paused } : x)));
+      if (paused) markSeen(sc.url);
+    } catch (e) {
+      alert(`Could not change alerts: ${e.message}`);
+    }
+  }
+
   async function togglePower() {
     const on = !allOn;
     if (!on && !confirm('Turn everything OFF?\n\nNo scanning, no NIFTY/sector refresh, no Telegram or desktop alerts until you turn it back ON.')) return;
@@ -449,7 +465,7 @@ export default function App() {
         const diffs = [];
         for (const s of data) {
           const before = prev.current?.[s.url];
-          if (!before || s.error) continue; // first load / failed fetch: nothing to compare
+          if (!before || s.error || s.alertsPaused) continue; // first load / failed fetch / alerts paused
           const now = new Set(s.stocks.map((x) => x.symbol));
           const added = [...now].filter((sym) => !before.has(sym));
           const movedToHistory = new Set((s.deactivated || []).filter((d) => d.movedToHistory).map((d) => d.symbol));
@@ -699,7 +715,7 @@ export default function App() {
           <section
             key={s.url}
             id={`card-${encodeURIComponent(s.url)}`}
-            className={`card ${changes[s.url] ? (changes[s.url].added.length ? 'changed-added' : 'changed-removed') : ''}`}
+            className={`card ${s.alertsPaused ? 'alerts-paused' : ''} ${changes[s.url] ? (changes[s.url].added.length ? 'changed-added' : 'changed-removed') : ''}`}
           >
             {changes[s.url] && (
               <div className="change-strip">
@@ -728,9 +744,22 @@ export default function App() {
                   {s.stocks.length} stocks · updated {fmtTime(s.updatedAt)}
                 </span>
               </div>
-              <button className="ghost small" onClick={() => removeScanner(s.url)} title="Remove">
-                ✕
-              </button>
+              <div className="card-actions">
+                <button
+                  className={`ghost small ${s.alertsPaused ? 'toggle-off' : 'toggle-on'}`}
+                  onClick={() => toggleScannerAlerts(s)}
+                  title={
+                    s.alertsPaused
+                      ? 'Alerts paused for this scanner (no Telegram, desktop or page alerts). Still tracked. Click to resume.'
+                      : 'Click to pause alerts for this scanner only. It keeps being tracked.'
+                  }
+                >
+                  {s.alertsPaused ? '🔕 Alerts paused' : '🔔 Alerts on'}
+                </button>
+                <button className="ghost small" onClick={() => removeScanner(s.url)} title="Remove">
+                  ✕
+                </button>
+              </div>
             </div>
             {s.error && <div className="banner error small">{s.error}</div>}
             {s.stocks.length === 0 ? (
